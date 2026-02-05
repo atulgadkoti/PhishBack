@@ -24,6 +24,10 @@ def handle_message(session_id, message_text):
     if not session.scamDetected and detect_scam_intent(message_text): #atul bhai aur kshitiz bhai ke liye <3
         session.scamDetected = True
 
+    if not session.scamDetected:
+        if not session.callback_sent:
+            send_guvi_callback(session, scam_detected=False)
+        return None, True  # True = session terminated
 
     extracted = extract_all(message_text)
     update_intelligence(session, extracted)

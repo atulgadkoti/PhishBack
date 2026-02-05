@@ -106,6 +106,13 @@ def honeypot_endpoint(
 
     reply, stop_flag = handle_message(session_id, incoming_text)
 
+    if reply is None:
+        print("SESSION:", session_id)
+        print("SCAM DETECTED: False - Not engaging")
+        return {
+            "status": "success",
+            "reply": ""
+        }
 
     print("SESSION:", session_id)
     print("STOP FLAG:", stop_flag)
