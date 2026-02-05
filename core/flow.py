@@ -17,10 +17,12 @@ def handle_message(session_id, message_text):
     session = get_session(session_id)
 
     session.turns += 1
+    # Use consistent message format: role (user/assistant) and content
     session.messages.append({
-    "sender": "scammer",
-    "text": message_text
-})
+        "role": "assistant",  # Scammer is the "assistant" in conversation
+        "content": message_text
+    })
+    
     if not session.scamDetected and detect_scam_intent(message_text): #atul bhai aur kshitiz bhai ke liye <3
         session.scamDetected = True
 
@@ -31,9 +33,9 @@ def handle_message(session_id, message_text):
 
     reply = agent_decide_reply(session)
     session.messages.append({
-    "sender": "agent",
-    "text": reply
-})
+        "role": "user",  # Our agent (Rajesh) is the "user" 
+        "content": reply
+    })
     print("SESSION STATE:", session.extracted)
     
     stop_flag = should_stop(session)
