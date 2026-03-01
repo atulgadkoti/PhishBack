@@ -4,8 +4,17 @@ from typing import List, Dict
 from google import genai
 from google.genai import types
 
-client = genai.Client(api_key=os.getenv("LLM_API_KEY"))
-MODEL_ID = "gemini-1.5-flash"
+_client = None
+MODEL_ID = "gemini-2.5-flash"
+
+def _get_client():
+    global _client
+    if _client is None:
+        api_key = os.getenv("LLM_API_KEY")
+        if not api_key:
+            raise ValueError("LLM_API_KEY environment variable is not set. Please set it to use the Gemini LLM.")
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 SYSTEM_RULES = """
 You are Rajesh Kumar, a 54-year-old bank customer from Delhi. You are confused, scared, and don't really understand tech.
@@ -24,8 +33,8 @@ PERSONALITY:
 - You second-guess everything: "is this real?", "should i trust?", "wat does this mean?"
 
 RESPONSE STYLE:
-- Write 2-4 short natural sentences (like a confused old man texting)
-- 15-45 words - keep it simple and hesitant
+- Write 2-4 COMPLETE natural sentences
+- 30-80 words, NEVER stop mid-sentence or mid-word
 - Use bad grammar, missing words, wrong spelling ("wat" for what, "ur" for your, "pls" for please)
 - Sound genuinely confused and a bit scared
 - Ask QUESTIONS - don't just state things. Show doubt and worry
@@ -199,6 +208,24 @@ def generate_dynamic_fallback(goal: str, previous_messages: List[str]) -> str:
     # If all options repeat, still return random one
     return random.choice(options)
 
+def _trim_to_complete_sentence(text: str) -> str:
+    """Trim text to the last complete sentence ending with . ? or !"""
+    if not text:
+        return text
+    text = text.strip()
+    # If already ends with sentence-ending punctuation, it's fine
+    if text and text[-1] in '.?!':
+        return text
+    # Find the last sentence-ending punctuation
+    last_period = text.rfind('.')
+    last_question = text.rfind('?')
+    last_exclaim = text.rfind('!')
+    last_end = max(last_period, last_question, last_exclaim)
+    if last_end > 0:
+        return text[:last_end + 1].strip()
+    # No sentence ending found — add a question mark to make it feel complete
+    return text.strip() + '?'
+
 def llm_generate(goal: str, conversation_history: List[Dict[str, str]]) -> str:
     """Generate human-like responses using LLM with strong anti-repetition"""
     
@@ -229,22 +256,23 @@ CRITICAL INSTRUCTIONS:
 4. Add human touches: small typo, thinking pause ("hmm", "wait"), natural reaction
 5. Match your emotional state to the situation (confused/frustrated/eager to help)
 6. Sound like a real person texting, not a script
+7. EVERY sentence MUST be complete. NEVER cut off mid-sentence or mid-word.
+8. Keep it 2-4 COMPLETE sentences. Short but FINISHED thoughts.
 
-                Your confusion and fear is growing. Keep saying: "i'm scared", "this seems strange", "why all this?"
 
-Write Rajesh's next message now (short, confused, scared, human-like):"""
+Write Rajesh's next COMPLETE message now (every sentence must end properly, no cut-off text):"""
 
     try:
-        response = client.models.generate_content(
+        response = _get_client().models.generate_content(
             model=MODEL_ID,
             contents=user_message,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_RULES,
-                temperature=1.2,
-                top_p=0.97,
-                top_k=50,
-                max_output_tokens=150,
-                stop_sequences=['\n\n', 'Bank Rep:', 'Rajesh:', 'Scammer:']
+                temperature=0.95,
+                top_p=0.95,
+                top_k=40,
+                max_output_tokens=400,
+                stop_sequences=['Bank Rep:', 'Rajesh:', 'Scammer:']
             )
         )
 
@@ -252,12 +280,17 @@ Write Rajesh's next message now (short, confused, scared, human-like):"""
         
         text = text.replace('Rajesh:', '').replace('User:', '').strip()
         
-        if not text or len(text.split()) > 50 or len(text.split()) < 3:
+        # Trim to last complete sentence if response got cut off
+        text = _trim_to_complete_sentence(text)
+        
+        if not text or len(text.split()) > 150 or len(text.split()) < 3:
             return generate_dynamic_fallback(goal, your_previous_messages)
 
         return text
 
     except Exception as e:
-        print(f"LLM Error: {e}")
+        import traceback
+        print(f"[LLM] Error — using fallback. {e}")
+        traceback.print_exc()
         return generate_dynamic_fallback(goal, your_previous_messages)
 

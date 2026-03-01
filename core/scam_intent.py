@@ -16,7 +16,7 @@ class ScamIntentDetector:
     
     def _load_models(self):
         vectorizer_path = os.path.join(self.models_dir, "tfidf_vectorizer.pkl")
-        classifier_path = os.path.join(self.models_dir, "xgb_scam_classifier.pkl")
+        classifier_path = os.path.join(self.models_dir, "xgb_model.pkl")
         
         if not os.path.exists(vectorizer_path):
             print(f"Warning: TF-IDF vectorizer not found at {vectorizer_path}")
