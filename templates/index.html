@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishBack — Agentic AI Honeypot</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="app">
+    <!-- Top Nav -->
+    <nav class="topbar">
+        <div class="topbar-left">
+            <div class="brand">
+                <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span class="brand-name">PhishBack</span>
+            </div>
+            <div class="nav-divider"></div>
+            <span class="nav-label">Threat Simulation Console</span>
+        </div>
+        <div class="topbar-right">
+            <div class="status-pill" id="connectionStatus">
+                <span class="pulse-dot"></span>
+                System Online
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- Chat Panel -->
+        <section class="panel panel-chat">
+            <div class="panel-header">
+                <h2 class="panel-title">Live Conversation</h2>
+                <div class="panel-actions">
+                    <button class="btn btn-ghost" onclick="resetSession()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-feed" id="chatMessages">
+                <div class="welcome">
+                    <svg class="welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <h3>Begin Simulation</h3>
+                    <p>Send a scam message below to test the honeypot agent. The system will detect the threat and deploy an AI persona to engage and extract intelligence.</p>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <span class="typing-label">Agent is typing</span>
+                <div class="typing-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+
+            <form class="input-bar" onsubmit="event.preventDefault(); sendMessage();">
+                <input type="text" class="input-field" id="chatInput"
+                       placeholder="Enter a scam message to test detection..."
+                       autocomplete="off" spellcheck="false" />
+                <button type="submit" class="btn btn-primary" id="sendBtn">Send</button>
+            </form>
+        </section>
+
+        <!-- Right Sidebar -->
+        <aside class="sidebar">
+            <!-- Threat Assessment -->
+            <div class="panel panel-compact">
+                <div class="panel-header">
+                    <h2 class="panel-title">Threat Assessment</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="threat-status" id="statusIndicator">
+                        <span class="threat-dot safe"></span>
+                        <span class="threat-label" id="statusText">Awaiting input</span>
+                    </div>
+                    <div class="meter" id="probBar" style="display: none;">
+                        <div class="meter-header">
+                            <span>Confidence</span>
+                            <span class="meter-value" id="probValue">0%</span>
+                        </div>
+                        <div class="meter-track">
+                            <div class="meter-fill" id="probFill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Extracted Intelligence -->
+            <div class="panel panel-compact">
+                <div class="panel-header">
+                    <h2 class="panel-title">Extracted Intelligence</h2>
+                </div>
+                <div class="panel-body" id="intelBody">
+                    <p class="empty-state">No data extracted yet.</p>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="panel panel-compact">
+                <div class="panel-header">
+                    <h2 class="panel-title">Session Metrics</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <span class="metric-value" id="turnCount">0</span>
+                            <span class="metric-label">Exchanges</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value" id="intelCount">0</span>
+                            <span class="metric-label">Artifacts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Scenarios -->
+            <div class="panel panel-compact">
+                <div class="panel-header">
+                    <h2 class="panel-title">Quick Test Scenarios</h2>
+                </div>
+                <div class="panel-body scenarios">
+                    <button class="scenario-btn" onclick="useExample(this)">Dear customer, your SBI account has been suspended due to KYC verification. Click here to verify: http://sbi-kyc-verify.com</button>
+                    <button class="scenario-btn" onclick="useExample(this)">Congratulations! You won Rs. 50,000 lottery. Transfer Rs. 500 to UPI: lottery.winner@paytm to claim your prize urgently!</button>
+                    <button class="scenario-btn" onclick="useExample(this)">This is from RBI. Your account will be blocked within 24 hours. Call immediately on 9876543210 to verify your identity.</button>
+                    <button class="scenario-btn" onclick="useExample(this)">Hi, I'm calling from HDFC Bank. We detected suspicious activity. Please share your OTP to secure your account. Send to verify@hdfc.pay</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <span>PhishBack &mdash; Agentic AI Honeypot</span>
+        <span class="footer-sep">|</span>
+        <span>AMD Slingshot Hackathon</span>
+    </footer>
+</div>
+
+<script src="/static/script.js"></script>
+
+</body>
+</html>

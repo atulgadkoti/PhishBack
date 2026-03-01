@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: phishback
+    runtime: python
+    buildCommand: pip install -r requirement.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_API_KEY
+        sync: false
+      - key: HONEYPOT_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11"
