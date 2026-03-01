@@ -48,7 +48,10 @@ def generate_agent_notes(session) -> str:
 
 
 def send_guvi_callback(session):
-
+    if not session.session_id:
+        print("ERROR: Cannot send callback - no valid session ID")
+        return
+    
     payload = {
         "sessionId": session.session_id,
         "scamDetected": True,

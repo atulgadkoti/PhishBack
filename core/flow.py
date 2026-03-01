@@ -13,27 +13,32 @@ def update_intelligence(session, extracted):
 
 
 def handle_message(session_id, message_text):
+    if not session_id or not message_text:
+        print("ERROR: session_id and message_text are required")
+        return None, False
 
     session = get_session(session_id)
 
     session.turns += 1
-    # Use consistent message format: role (user/assistant) and content
     session.messages.append({
-        "role": "assistant",  # Scammer is the "assistant" in conversation
+        "role": "assistant",
         "content": message_text
     })
     
-    if not session.scamDetected and detect_scam_intent(message_text): #atul bhai aur kshitiz bhai ke liye <3
+    if not session.scamDetected and detect_scam_intent(message_text):
         session.scamDetected = True
-
+        print(f"[SESSION {session_id}] SCAM INTENT DETECTED - Agent activated")
 
     extracted = extract_all(message_text)
     update_intelligence(session, extracted)
 
+    if not session.scamDetected:
+        print(f"[SESSION {session_id}] No scam detected yet - Agent not engaged")
+        return None, False
 
     reply = agent_decide_reply(session)
     session.messages.append({
-        "role": "user",  # Our agent (Rajesh) is the "user" 
+        "role": "user",
         "content": reply
     })
     print("SESSION STATE:", session.extracted)
@@ -46,6 +51,5 @@ def handle_message(session_id, message_text):
         and not session.callback_sent
     ):
         send_guvi_callback(session)
-
 
     return reply, stop_flag
