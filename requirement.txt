@@ -1,7 +1,9 @@
 fastapi
-uvicorn
+uvicorn[standard]
 google-genai
 pydantic
 scikit-learn
 numpy
 pandas
+jinja2
+xgboost

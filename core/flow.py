@@ -30,15 +30,19 @@ def handle_message(session_id, message_text):
     extracted = extract_all(message_text)
     update_intelligence(session, extracted)
 
+    # Only activate the agentic AI when scam is detected
+    if session.scamDetected:
+        reply = agent_decide_reply(session)
+    else:
+        reply = ""
 
-    reply = agent_decide_reply(session)
     session.messages.append({
         "role": "user",  # Our agent (Rajesh) is the "user" 
         "content": reply
     })
     print("SESSION STATE:", session.extracted)
     
-    stop_flag = should_stop(session)
+    stop_flag = should_stop(session) if session.scamDetected else False
 
     if (
         stop_flag
