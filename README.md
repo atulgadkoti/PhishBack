@@ -1,8 +1,8 @@
 # PhishBack
 
-**An AI-powered agentic honeypot that engages scammers in realistic conversations to waste their time and extract intelligence.**
+**An AI-powered scam engagement tool that detects scam messages and responds with a realistic persona to waste scammers' time and extract intelligence.**
 
-PhishBack receives incoming scam messages via API, detects scam intent using a TF-IDF + XGBoost ML model, and — when a scam is detected — engages the scammer as a confused, elderly persona ("Rajesh Kumar") powered by Google Gemini LLM. The goal is to extracting valuable intelligence like phishing links, UPI IDs, phone numbers, and bank account numbers.
+PhishBack provides a web-based interface where users can send scammer messages. The system detects scam intent using a TF-IDF + XGBoost ML model and — when a scam is detected — engages with a confused, elderly persona ("Rajesh Kumar") powered by Google Gemini LLM. It extracts valuable intelligence like phishing links, UPI IDs, phone numbers, and bank account numbers from the conversation.
 
 ---
 
@@ -13,9 +13,9 @@ PhishBack receives incoming scam messages via API, detects scam intent using a T
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
-- [API Reference](#api-reference)
 - [Environment Variables](#environment-variables)
 - [Deployment](#deployment)
+- [How the Agent Works](#how-the-agent-works)
 - [License](#license)
 
 ---
@@ -23,19 +23,17 @@ PhishBack receives incoming scam messages via API, detects scam intent using a T
 ## How It Works
 
 ```
-Scammer Message → API → Scam Detection (XGBoost) → LLM Engagement (Gemini) → Reply
-                                                          ↓
-                                               Extract Intelligence
-                                          (Links, UPI, Phone, Bank A/C)
-                                                          ↓
-                                               Callback with Report
+Scammer Message → Frontend → /api/chat → Scam Detection (XGBoost) → LLM Engagement (Gemini) → Reply
+                                                                            ↓
+                                                                 Extract Intelligence
+                                                            (Links, UPI, Phone, Bank A/C)
 ```
 
-1. **Receive** — A scam message hits the `/honeypot` POST endpoint.
+1. **Input** — A scam message is entered on the frontend web interface.
 2. **Detect** — The TF-IDF + XGBoost classifier scores the message for scam probability.
 3. **Engage** — If scam is detected, an LLM agent (Gemini) replies as a confused old man, trying to extract more intel.
 4. **Extract** — Regex-based extractors pull out phishing links, UPI IDs, phone numbers, and bank account numbers from every message.
-5. **Report** — Once enough intelligence is gathered (or max turns reached), a callback is sent with all extracted data.
+5. **Display** — The agent's reply, threat assessment, and extracted intelligence are shown on the frontend in real time.
 
 ---
 
@@ -43,25 +41,26 @@ Scammer Message → API → Scam Detection (XGBoost) → LLM Engagement (Gemini)
 
 | Component | File | Role |
 |---|---|---|
-| **API Server** | `app.py` | FastAPI endpoint, request validation, auth |
-| **Flow Controller** | `core/flow.py` | Orchestrates detection → reply → extraction → callback |
+| **API Server** | `app.py` | FastAPI server, serves frontend & chat API |
+| **Flow Controller** | `core/flow.py` | Orchestrates detection → reply → extraction |
 | **Scam Detector** | `core/scam_intent.py` | TF-IDF + XGBoost scam classification with keyword fallback |
 | **Agent Logic** | `core/agent.py` | Decides which goal/strategy to use based on scammer intent |
 | **LLM Agent** | `core/llm_agent.py` | Gemini-powered response generation as "Rajesh Kumar" persona |
 | **Extractor** | `core/extractor.py` | Regex extraction of UPI, links, phones, bank accounts |
 | **Session Manager** | `core/sessions.py` | Per-session conversation state and extracted intelligence |
-| **Callback** | `tools/callback.py` | Sends extracted intelligence report via callback API |
 | **ML Models** | `models/` | Serialized TF-IDF vectorizer + XGBoost classifier (`.pkl`) |
+| **Frontend** | `templates/index.html` | Web UI for interacting with the agent |
 
 ---
 
 ## Tech Stack
 
 - **Framework:** FastAPI
-- **LLM:** Google Gemini 1.5 Flash (via `google-genai`)
+- **LLM:** Google Gemini 2.5 Flash (via `google-genai`)
 - **ML:** XGBoost + TF-IDF (scikit-learn, joblib)
-- **Language:** Python 3.10+
-- **Deployment:** Vercel (serverless)
+- **Language:** Python 3.11+
+- **Frontend:** HTML, CSS, JavaScript
+- **Deployment:** Render
 
 ---
 
@@ -70,7 +69,7 @@ Scammer Message → API → Scam Detection (XGBoost) → LLM Engagement (Gemini)
 ```
 PhishBack-main/
 ├── app.py                  # FastAPI application & routes
-├── vercel.json             # Vercel deployment config
+├── render.yaml             # Render deployment config
 ├── requirement.txt         # Python dependencies
 ├── core/
 │   ├── flow.py             # Main message handling flow
@@ -83,6 +82,11 @@ PhishBack-main/
 ├── models/
 │   ├── tfidf_vectorizer.pkl
 │   └── xgb_scam_classifier.pkl
+├── static/
+│   ├── script.js           # Frontend JavaScript
+│   └── style.css           # Frontend styles
+├── templates/
+│   └── index.html          # Frontend UI
 └── tools/
     └── callback.py         # Intelligence report callback
 ```
@@ -93,9 +97,8 @@ PhishBack-main/
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - Google Gemini API key
-- A honeypot API key (any secret string for auth)
 
 ### Installation
 
@@ -112,11 +115,9 @@ pip install -r requirement.txt
 
 ```bash
 # Linux/Mac
-export HONEYPOT_API_KEY="your-secret-api-key"
 export LLM_API_KEY="your-google-gemini-api-key"
 
 # Windows (PowerShell)
-$env:HONEYPOT_API_KEY = "your-secret-api-key"
 $env:LLM_API_KEY = "your-google-gemini-api-key"
 ```
 
@@ -126,63 +127,7 @@ $env:LLM_API_KEY = "your-google-gemini-api-key"
 uvicorn app:app --reload --port 8000
 ```
 
-The API will be available at `http://localhost:8000`.
-
----
-
-## API Reference
-
-### `POST /honeypot`
-
-Receive and respond to a scam message.
-
-**Headers:**
-
-| Header | Type | Required | Description |
-|---|---|---|---|
-| `x-api-key` | `string` | Yes | API key for authentication |
-
-**Request Body:**
-
-```json
-{
-  "sessionId": "unique-session-id",
-  "message": {
-    "sender": "scammer",
-    "text": "Dear customer, your account has been blocked. Click here to verify.",
-    "timestamp": 1709312400
-  },
-  "conversationHistory": [
-    {
-      "sender": "scammer",
-      "text": "Previous message...",
-      "timestamp": 1709312300
-    }
-  ],
-  "metadata": {
-    "channel": "sms",
-    "language": "en",
-    "locale": "IN"
-  }
-}
-```
-
-**Response:**
-
-```json
-{
-  "status": "success",
-  "reply": "hmm wat is this? y my account blocked? is this real sir? i'm scared"
-}
-```
-
-**Status Codes:**
-
-| Code | Description |
-|---|---|
-| `200` | Success — reply generated |
-| `401` | Invalid API key |
-| `422` | Request validation error |
+Open `http://localhost:8000` in your browser to access the frontend. Type scam messages to test the detection and AI engagement.
 
 ---
 
@@ -190,26 +135,26 @@ Receive and respond to a scam message.
 
 | Variable | Required | Description |
 |---|---|---|
-| `HONEYPOT_API_KEY` | Yes | Secret key to authenticate incoming API requests |
 | `LLM_API_KEY` | Yes | Google Gemini API key for LLM response generation |
 
 ---
 
 ## Deployment
 
-### Vercel
+### Render
 
-The project includes a `vercel.json` for one-click deployment:
+The project includes a `render.yaml` for deployment on Render:
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
+1. Push your code to a GitHub repository.
+2. Connect the repo to [Render](https://render.com).
+3. Render will auto-detect the `render.yaml` config and set up the service.
+4. Set the `LLM_API_KEY` environment variable in your Render dashboard.
 
-# Deploy
-vercel --prod
+The service runs with:
+
 ```
-
-Make sure to set the environment variables in your Vercel project settings.
+uvicorn app:app --host 0.0.0.0 --port $PORT
+```
 
 ---
 
@@ -218,7 +163,7 @@ Make sure to set the environment variables in your Vercel project settings.
 The agent persona **Rajesh Kumar** is a 54-year-old confused, scared, tech-illiterate man from Delhi. The agent strategically:
 
 - **Stalls** — buys time with confusion and hesitation
-- **Asks for links** — tries to get phishing URLs from the scammer  
+- **Asks for links** — tries to get phishing URLs from the scammer
 - **Asks for UPI** — extracts payment identifiers
 - **Asks for phone numbers** — gets scammer contact info
 - **Fakes failures** — "link not opening sir", "payment not going" to keep the scammer hooked
